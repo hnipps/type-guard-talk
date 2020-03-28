@@ -1,0 +1,402 @@
+import { Split } from 'mdx-deck';
+
+import { future, highlight } from 'mdx-deck/themes';
+
+import MyImage from './components/Image';
+
+export const themes = [future, highlight];
+
+# Get the properties you want with TypeScript type guards
+
+---
+
+# The Problem
+
+<!-- Sometimes types need to be narrowed -->
+
+<img src="https://cl.ly/ab1d692c6756/%255Bef2679c5c274e7aa17e256b567fe99a7%255D_is-of-type-example.gif" />
+
+Sometimes you need to narrow your types
+
+---
+
+import { FullScreenCode } from 'mdx-deck';
+
+<FullScreenCode>
+
+```ts
+export interface Vehicle {
+  move: (distance: number) => void;
+}
+
+export class Car implements Vehicle {
+  move = (distance: number) => {
+    // Move car…
+  };
+
+  turnSteeringWheel = (direction: string) => {
+    // Turn wheel…
+  };
+}
+
+export class VehicleController {
+  vehicle: Vehicle;
+  constructor(vehicle: Vehicle) {
+    this.vehicle = vehicle;
+  }
+}
+```
+
+</FullScreenCode>
+
+---
+
+<FullScreenCode>
+
+```ts
+const myCar = new Car();
+const { vehicle } = new VehicleController(myCar);
+
+vehicle.turnSteeringWheel('left');
+// Error: Property 'turnSteeringWheel' does not exist
+// on type 'Vehicle'
+```
+
+</FullScreenCode>
+
+---
+
+<!-- Cast as any -->
+
+<FullScreenCode>
+
+```ts
+const myCar = new Car();
+const vehicleController = new VehicleController(myCar);
+
+(vehicle as any).turnSteeringWheel('left');
+// No error!
+```
+
+</FullScreenCode>
+
+---
+
+🎉
+
+---
+
+But...
+
+---
+
+<!-- Insert gif of bad fix -->
+
+<div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center' }}>
+  <MyImage src="https://media.giphy.com/media/ZJADwLtxvw5GM/giphy.gif" />
+  <MyImage src="http://giphygifs.s3.amazonaws.com/media/MhVdjqeKACHmM/giphy.gif" />
+  <MyImage src="https://media.giphy.com/media/1zSz5MVw4zKg0/giphy.gif" />
+  <MyImage src="https://media.giphy.com/media/1BCIlYHwJ3hu0/giphy.gif" />
+  <MyImage src="https://media.giphy.com/media/eXQPwwE8DFTZS/giphy.gif" />
+  <MyImage src="https://media.giphy.com/media/12XMGIWtrHBl5e/giphy.gif" />
+  <MyImage src="https://media.giphy.com/media/wYyTHMm50f4Dm/giphy.gif" />
+  <MyImage src="https://media.giphy.com/media/oAb3D3B47LylG/giphy.gif" />
+  <MyImage src="https://media.giphy.com/media/z5WtAAaFpnIgU/giphy.gif" />
+  <MyImage src="https://media.giphy.com/media/spfi6nabVuq5y/giphy.gif" />
+  <MyImage src="http://giphygifs.s3.amazonaws.com/media/i1JSXl0MfeRd6/giphy.gif" />
+</div>
+
+---
+
+# How can we make this better?
+
+---
+
+<!-- # A type-safe solution -->
+
+<FullScreenCode>
+
+```ts
+// Use a simple type guard
+if ((vehicle as Car).turnSteeringWheel) {
+  (vehicle as Car).turnSteeringWheel('left');
+}
+```
+
+</FullScreenCode>
+
+---
+
+### Why doesn't the compiler know that `vehicle` is a `Car`?
+
+---
+
+It's not a proper type guard.
+
+We need to add a type predicate!
+
+---
+
+A type guard is:
+
+> "Some expression that performs a runtime check that guarantees the type in some scope."
+
+<!-- From the TS handbook -->
+
+---
+
+# Built-in type guards
+
+```ts
+if (typeof myVar === 'string') {
+  // Do stringy stuff...
+}
+
+if (myVehicle instanceof Car) {
+  // Do Car-y stuff...
+}
+```
+
+---
+
+Can't do this...
+
+```ts
+// Can only use typeof for JS primitives
+if (typeof myVar === 'Car') {
+  // Do Car-y stuff...
+}
+```
+
+---
+
+Or this...
+
+```ts
+interface SportsCar extends Car {
+  engageSportMode: () => void;
+  toggleTractionControl: () => void;
+}
+
+// Only applicable to Classes
+if (myVehicle instanceof SportsCar) {
+  // Do Sporty stuff...
+}
+```
+
+---
+
+# Built-in type guards
+
+- ✅ Use `typeof` to check for JS primitive types
+- ✅ Use `instanceof` to check for instances of a Class
+- ❌ Check for objects that aren't instances of a Class
+
+---
+
+Now what?
+
+---
+
+# Custom type guards
+
+<!-- Great but adds maintenance overhead -->
+
+```ts
+const isCar = (myVar: any): myVar is Car =>
+  (myVar as Car).turnSteeringWheel !== undefined;
+```
+
+---
+
+<FullScreenCode>
+
+```ts
+const myCar = new Car();
+const { vehicle } = new VehicleController(myCar);
+
+if (isCar(vehicle)) {
+  // Type guard asserted vehicle IS Car
+  vehicle.turnSteeringWheel('left');
+  console.log('Nice car!');
+} else {
+  console.log("Dude, where's my car?!");
+}
+// Nice car!
+```
+
+</FullScreenCode>
+
+---
+
+<FullScreenCode>
+
+```ts
+const isCar = (myVar: any): myVar is Car =>
+  (myVar as Car).turnSteeringWheel !== undefined;
+
+const isSportsCar = (myVar: any): myVar is SportsCar =>
+  (myVar as SportsCar).engageSportMode !== undefined;
+
+const isBus = (myVar: any): myVar is Bus =>
+  (myVar as Bus).payFare !== undefined;
+
+const isBicycle = (myVar: any): myVar is Bicycle =>
+  (myVar as Bicycle).ringBell !== undefined;
+
+const isHelicopter = (myVar: any): myVar is Helicopter =>
+  (myVar as Helicopter).engageRotor !== undefined;
+
+const isSpeedboat = (myVar: any): myVar is Speedboat =>
+  (myVar as Speedboat).isWaterproof !== undefined;
+```
+
+</FullScreenCode>
+
+---
+
+That got out-of-hand quickly!
+
+---
+
+<img src="https://media.giphy.com/media/UlzvVkHetWW4w/giphy.gif" />
+
+---
+
+# A generic type guard util
+
+```ts
+const isOfType = <T>(
+  myVar: any,
+  propertyToCheck: keyof T
+): myVar is T =>
+  (myVar as T)[propertyToCheck] !== undefined;
+```
+
+---
+
+<FullScreenCode>
+
+```ts
+const anotherCar: Car = {
+  move: (distance: number) => null,
+  turnSteeringWheel: (direction: string) => null,
+};
+
+const anotherVehicleController = new VehicleController(anotherCar);
+
+const { vehicle } = anotherVehicleController;
+
+if (isOfType<Car>(vehicle, 'turnSteeringWheel')) {
+  // No errors, because vehicle: Car
+  vehicle.turnSteeringWheel('left');
+  console.log('Nice car!');
+} else {
+  console.log("Dude, where's my car?!");
+}
+// console: Nice car!
+```
+
+</FullScreenCode>
+
+---
+
+<FullScreenCode>
+
+```ts
+const isOfType = <T>(
+  myVar: any,
+  propertyToCheck: keyof T
+): myVar is T =>
+  (myVar as T)[propertyToCheck] !== undefined;
+
+// When T = Car...
+const isCar = (
+  myVar: any
+): myVar is Car =>
+  (myVar as Car).turnSteeringWheel !== undefined;
+```
+
+</FullScreenCode>
+
+---
+
+<FullScreenCode>
+
+```ts
+interface SportsCar extends Car {
+  engageSportMode: () => void;
+  toggleTractionControl: () => void;
+}
+
+const myVehicle: SportsCar = {
+  move: () => null,
+  turnSteeringWheel: (direction: string) => console.log(direction),
+  engageSportMode: () => console.log('Vroom'),
+  toggleTractionControl: () => null,
+};
+
+if (isOfType<SportsCar>(myVehicle, 'engageSportMode')) {
+  myVehicle.engageSportMode();
+}
+// Vroom
+```
+
+</FullScreenCode>
+
+---
+
+# A Caveat
+
+---
+
+<img src="https://media.giphy.com/media/MCZ39lz83o5lC/giphy.gif" />
+
+---
+
+`isOfType` is naïve
+
+---
+
+<FullScreenCode>
+
+```ts
+interface Bus extends Vehicle {
+  turnSteeringWheel: (direction: string) => null;
+  isDelayed: boolean;
+}
+
+const myBus: Bus = {
+  move: (distance: number) => null,
+  turnSteeringWheel: (direction: string) => null,
+  isDelayed: true,
+};
+
+const yetAnotherVehicleController = new VehicleController(myBus);
+
+const { vehicle } = yetAnotherVehicleController;
+
+if (isOfType<Car>(vehicle, 'turnSteeringWheel')) {
+  // The compiler thinks 'yetAnotherVehicle: Car', even though we know its a 'Bus'
+  vehicle.turnSteeringWheel('left');
+  console.log('Nice ca... wait a second...');
+} else {
+  console.log("Dude, where's my car?!");
+}
+// console: Nice ca... wait a second...
+```
+
+</FullScreenCode>
+
+---
+
+# Recap
+
+- ☠️ Casting as `any` is BAD
+- 👍 Built-in type guards can only check classes and primitives
+- 💯 The generic `isOfType` can check ANY object your heart desires
+- ⚠️ But it is naïve because it only checks a single property
+
+---
+
+# Questions?
